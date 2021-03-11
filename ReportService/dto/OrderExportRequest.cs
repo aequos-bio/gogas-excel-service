@@ -16,5 +16,7 @@ namespace ReportService.dto
         public virtual List<SupplierOrderItem> supplierOrder { get; set; }
 
         public virtual Boolean friends { get; set; }
+
+        public virtual Boolean addWeightColumns { get; set; }
     }
 }
