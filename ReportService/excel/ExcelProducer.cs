@@ -25,7 +25,7 @@ namespace ReportService.excel
 
             foreach (User user in usersList)
             {
-                ws.Cells[row, col].Value = (col - 5);
+                ws.Cells[row, col].Value = user.position;
                 ws.Cells[row, col].Style.Font.SetFromFont(new Font("Arial", 10, FontStyle.Bold));
                 ws.Cells[row, col].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 ws.Cells[row, col].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
