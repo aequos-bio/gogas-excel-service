@@ -20,7 +20,7 @@ namespace ReportService.Controllers
         public IActionResult Order([FromBody] OrderExportRequest request)
         {
             ExcelProducer producer = new ExcelProducer();
-            byte[] excelContent = producer.exportOrder(request.products, request.users, request.userOrder, request.supplierOrder, request.friends);
+            byte[] excelContent = producer.exportOrder(request.products, request.users, request.userOrder, request.supplierOrder, request.friends, request.addWeightColumns);
             return new FileContentResult(excelContent, "application/octet-stream");
         }
 
@@ -32,15 +32,6 @@ namespace ReportService.Controllers
             byte[] excelContent = producer.exportProducts(products);
             return new FileContentResult(excelContent, "application/octet-stream");
         }
-
-        /*[HttpPost]
-        [Route("products/extract/{excelType}")]
-        public IActionResult ExtractProductList([FromBody] byte[] excelContent, String excelType)
-        {
-            ExcelReader reader = new ExcelReader();
-            List<PriceListProduct> products = reader.extractProducts(excelContent, excelType);
-            return new JsonResult(products);
-        }*/
 
         [HttpPost]
         [Route("products/extract/{excelType}")]

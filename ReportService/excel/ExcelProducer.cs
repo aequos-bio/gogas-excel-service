@@ -12,16 +12,18 @@ namespace ReportService.excel
     {
         private readonly String[] PRODUCTS_HEADER = { "Codice esterno", "Descrizione", "Codice fornitore", "Produttore", "Regione", "Categoria", "Unità di misura", "Peso collo", "Prezzo unitario", "Note", "Cadenza", "Acq. solo a collo", "Multiplo" };
 
-        public byte[] exportOrder(List<OrderProduct> productList, List<User> usersList, List<OrderItem> totalOrder, List<SupplierOrderItem> supplierOrder, Boolean friends)
+        public byte[] exportOrder(List<OrderProduct> productList, List<User> usersList, List<OrderItem> totalOrder, 
+                                  List<SupplierOrderItem> supplierOrder, Boolean friends, Boolean addWeightColumns)
         {
             ExcelPackage pck = new ExcelPackage();
             var ws = pck.Workbook.Worksheets.Add("Dettaglio ordine");
             Font baseFont = new Font("Arial", 8, FontStyle.Regular);
 
             int row = 1, col = 1;
+            int fixedCols = addWeightColumns ? 8 : 6;
 
             row++;
-            col = 6;
+            col = fixedCols;
 
             foreach (User user in usersList)
             {
@@ -34,7 +36,9 @@ namespace ReportService.excel
                 ws.Cells[row + 1, col].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 ws.Cells[row + 1, col].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(146, 208, 80));
 
-                if (user.role == User.FRIEND)
+                if (addWeightColumns)
+                    ws.Cells[row + 2, col].Value = "Ordinato";
+                else if (user.role == User.FRIEND)
                     ws.Cells[row + 2, col].Value = "Amico di\r\n" + user.referralFullName;
                 else
                     ws.Cells[row + 2, col].Value = user.phone + "\r\n" + user.email;
@@ -43,10 +47,18 @@ namespace ReportService.excel
                 ws.Cells[row + 2, col].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 ws.Cells[row + 2, col].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(242, 242, 242));
 
+                if (addWeightColumns)
+                {
+                    ws.Cells[row, col, row, col + 2].Merge = true;
+                    ws.Cells[row + 1, col, row + 1, col + 2].Merge = true;
+                    ws.Cells[row + 2, ++col].Value = "Peso";
+                    ws.Cells[row + 2, ++col].Value = "Valore €";
+                }
+
                 col++;
             }
 
-            ExcelRange range = ws.Cells[row + 1, 6, row + 2, col - 1];
+            ExcelRange range = ws.Cells[row + 1, fixedCols, row + 2, col - 1];
             ApplyExcelBaseStyle(range, baseFont);
 
             row += 2;
@@ -65,7 +77,16 @@ namespace ReportService.excel
             ws.Cells[row, col].Value = friends ? "Quantità\r\nritirata" : "Colli\r\nda ordinare";
             ws.Cells[row, col++].Style.WrapText = true;
 
-            range = ws.Cells[row, 1, row, 5];
+            if (addWeightColumns)
+            {
+                ws.Cells[row, col].Value = "Peso\r\ntotale";
+                ws.Cells[row, col++].Style.WrapText = true;
+
+                ws.Cells[row, col].Value = "Costo\r\ntotale";
+                ws.Cells[row, col++].Style.WrapText = true;
+            }
+
+            range = ws.Cells[row, 1, row, col-1];
             ApplyExcelBaseStyle(range, baseFont);
             range.Style.Fill.PatternType = ExcelFillStyle.Solid;
             range.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(146, 208, 80));
@@ -111,12 +132,28 @@ namespace ReportService.excel
                 ws.Cells[row, col].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 ws.Cells[row, col++].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(235, 241, 222));
 
+                if (addWeightColumns)
+                {
+                    ws.Cells[row, col].Formula = buildSumFormula(usersList.Count, row, col, 3, ws);
+                    ws.Cells[row, col++].Style.Numberformat.Format = "0.000";
+
+                    ws.Cells[row, col].Formula = buildSumFormula(usersList.Count, row, col, 3, ws); ;
+                    ws.Cells[row, col++].Style.Numberformat.Format = "0.00 €";
+                }
+
                 foreach (var user in usersList)
                 {
                     var dt = os.Where(g => g.userId == user.id).FirstOrDefault();
                     if (dt != null)
                         //Se esporto il file per ripartizione amici riporto le qta ordinate altrimenti è per riepilogo ordine e quindi riporto qta ritirata
                         ws.Cells[row, col].Value = dt.quantity;
+
+                    if (addWeightColumns)
+                    {
+                        col += 2;
+                        ws.Cells[row, col].Formula = "if(isblank(" + ws.Cells[row, col - 1].Address + "),\"\",product(" + ws.Cells[row, 2].Address + "," + ws.Cells[row, col - 1].Address + "))";
+                    }
+
                     col++;
                 }
 
@@ -124,33 +161,70 @@ namespace ReportService.excel
                 col = 1;
             }
 
-            col = 5;
+            col = fixedCols;
 
-            ws.Cells[row, col++].Value = "Totali";
+            ws.Cells[row, col - 1].Value = "Totali";
             foreach (var itemU in usersList)
             {
-                ws.Cells[row, col].Formula = "sumproduct(" + ws.Cells[5, 2].Address + ":" + ws.Cells[row - 1, 2].Address + "," + ws.Cells[5, col].Address + ":" + ws.Cells[row - 1, col].Address + ")";
+                if (addWeightColumns)
+                {
+                    col += 2;
+                    ws.Cells[row, col].Formula = "sum(" + ws.Cells[5, col].Address + ":" + ws.Cells[row - 1, col].Address + ")";
+                }
+                else
+                {
+                    ws.Cells[row, col].Formula = "sumproduct(" + ws.Cells[5, 2].Address + ":" + ws.Cells[row - 1, 2].Address + "," + ws.Cells[5, col].Address + ":" + ws.Cells[row - 1, col].Address + ")";
+                }
                 col++;
             }
-            ws.Cells[row, 6, row, col].Style.Numberformat.Format = "0.00 €";
+            int userColumns = usersList.Count() * (addWeightColumns ? 3 : 1);
 
-            ws.Cells[5, 6, row - 1, 5 + usersList.Count()].Style.Numberformat.Format = "0.000";
+            ws.Cells[row, fixedCols, row, (fixedCols - 1) + userColumns].Style.Numberformat.Format = "0.00 €";
+            ws.Cells[5, fixedCols, row - 1, (fixedCols - 1) + userColumns].Style.Numberformat.Format = "0.000";
 
-            range = ws.Cells[5, 1, row - 1, 5 + usersList.Count()];
+            range = ws.Cells[5, 1, row - 1, (fixedCols - 1) + userColumns];
             ApplyExcelBaseStyle(range, baseFont);
 
             ws.Cells[5, 1, row - 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
 
-            range = ws.Cells[row, 5, row, 5 + usersList.Count()];
+            range = ws.Cells[row, (fixedCols - 1), row, (fixedCols - 1) + userColumns];
             ApplyExcelBaseStyle(range, baseFont);
             range.Style.Fill.PatternType = ExcelFillStyle.Solid;
             range.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(146, 208, 80));
 
-            ws.Cells[1, 1, row, 5 + usersList.Count()].AutoFitColumns();
+            col = fixedCols;
+            if (addWeightColumns)
+            {
+                //formato colore differente per le colonne aggiuntive sul peso
+                foreach (var itemU in usersList)
+                {
+                    range = ws.Cells[4, col + 1, row, col + 1];
+                    range.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    range.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(255, 241, 196));
 
-            ws.View.FreezePanes(5, 6);
+                    range = ws.Cells[4, col + 2, row, col + 2];
+                    range.Style.Numberformat.Format = "0.00 €";
+                    range.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    range.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(255, 199, 201));
+
+                    col += 3;
+                }
+            }
+
+            ws.Cells[1, 1, row, (fixedCols - 1) + userColumns].AutoFitColumns();
+
+            ws.View.FreezePanes(5, fixedCols);
 
             return pck.GetAsByteArray();
+        }
+
+        private String buildSumFormula(int times, int row, int col, int interval, ExcelWorksheet ws)
+        {
+            string formula = "";
+            for (int i = 1; i <= times; i++)
+                formula += ws.Cells[row, col + (3 * i)].Address + ",";
+            formula = formula.Substring(0, formula.Length - 1);
+            return "sum(" + formula + ")";
         }
 
         public byte[] exportProducts(IList<PriceListProduct> products)
