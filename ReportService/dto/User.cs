@@ -11,6 +11,8 @@ namespace ReportService.dto
 
         public virtual string id { get; set; }
 
+        public virtual int position { get; set; }
+
         public virtual string fullName { get; set; }
 
         public virtual string role { get; set; }
