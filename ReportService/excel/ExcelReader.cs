@@ -40,14 +40,21 @@ namespace ReportService.excel
 
                             colIndex = 0;
 
+                            if (excelReader.GetValue(colIndex) == null)
+                            {
+                                break;
+                            }
+
                             PriceListProduct productDictionary = new PriceListProduct();
                             productDictionary.externalId = excelReader.GetString(colIndex++);
                             productDictionary.name = excelReader.GetString(colIndex++);
-                            productDictionary.supplierExternalId = excelReader.GetString(colIndex++);
+                            productDictionary.supplierExternalId = excelReader.GetValue(colIndex++).ToString();
                             productDictionary.supplierName = excelReader.GetString(colIndex++);
                             productDictionary.supplierProvince = excelReader.GetString(colIndex++);
                             productDictionary.category = excelReader.GetString(colIndex++);
                             productDictionary.unitOfMeasure = excelReader.GetString(colIndex++);
+
+                            
 
                             decimal boxWeight = Convert.ToDecimal(excelReader.GetDouble(colIndex++));
                             if (boxWeight <= 0)
