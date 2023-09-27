@@ -48,16 +48,13 @@ namespace ReportService.excel
                             PriceListProduct productDictionary = new PriceListProduct();
                             productDictionary.externalId = excelReader.GetString(colIndex++);
                             productDictionary.name = excelReader.GetString(colIndex++);
-
-                            productDictionary.supplierExternalId = extractSupplierId(colIndex, excelReader);
-                            colIndex++;
-                            
+                            productDictionary.supplierExternalId = excelReader.GetValue(colIndex++).ToString();
                             productDictionary.supplierName = excelReader.GetString(colIndex++);
                             productDictionary.supplierProvince = excelReader.GetString(colIndex++);
                             productDictionary.category = excelReader.GetString(colIndex++);
                             productDictionary.unitOfMeasure = excelReader.GetString(colIndex++);
 
-
+                            
 
                             decimal boxWeight = Convert.ToDecimal(excelReader.GetDouble(colIndex++));
                             if (boxWeight <= 0)
@@ -89,20 +86,7 @@ namespace ReportService.excel
             }
         }
 
-        private string extractSupplierId(int colIndex, IExcelDataReader excelReader)
-        {
-            Type type = excelReader.GetFieldType(colIndex);
-            
-            if (type.Equals(typeof(string)))
-                return excelReader.GetString(colIndex);
-
-            if (type.Equals(typeof(double)))
-                return excelReader.GetDouble(colIndex).ToString();
-
-            return excelReader.GetValue(colIndex).ToString();
-        }
-
-        private IExcelDataReader initReader(string excelType, Stream excelStream)
+        private static IExcelDataReader initReader(string excelType, Stream excelStream)
         {
             IExcelDataReader excelReader;
             if (excelType == "xls")
