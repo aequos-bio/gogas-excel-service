@@ -22,7 +22,7 @@ namespace ReportService.Test
         }
 
         [Test]
-        public void givenAnExcelPriceListWithNumericSupplierIdAndEmptyRows_whenReadingProducts_thenAllProductsAreRead()
+        public void givenAnExcelPriceListWithNumericSupplierIdAndNumericProductIdAndEmptyRows_whenReadingProducts_thenAllProductsAreRead()
         {
             byte[] priceListContent = File.ReadAllBytes("resources/pricelist_empty_lines.xlsx");
             ExcelReader excelReader = new ExcelReader();
